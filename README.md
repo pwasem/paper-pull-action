@@ -1,6 +1,9 @@
-# paper-pull
+# paper-pull-action
 
-An element providing a starting point for your own reusable Polymer elements.
+A polymer paper pull action element (a.k.a pull-to-action, pull-to-refresh)
+
+- WORK IN PROGRESS
+- CONTRIBUTORS WELCOME
 
 
 ## Dependencies

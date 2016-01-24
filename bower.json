@@ -1,21 +1,26 @@
 {
   "name": "paper-pull-action",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "authors": [
     "Pascal Wasem <pascal.wasem@googlemail.com>"
   ],
-  "description": "https://gitlab.interactive-software.de/polymer/paper-pull-action",
+  "description": "A polymer paper pull action element",
   "keywords": [
     "web-component",
     "polymer",
     "paper"
   ],
   "main": "paper-pull-action.html",
-  "license": "Scheer GmbH 2015",
-  "homepage": "https://gitlab.interactive-software.de/polymer/paper-pull-action/",
+  "license": "MIT",
+  "homepage": "https://github.com/pwasem/paper-pull-action",
   "ignore": [
     "/.*",
-    "/test/"
+    "/test/",
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
   ],
   "dependencies": {
     "polymer": "Polymer/polymer#^1.2.3",
@@ -25,5 +30,6 @@
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
     "paper-elements": "PolymerElements/paper-elements#^1.0.7"
-  }
+  },
+  "moduleType": []
 }
