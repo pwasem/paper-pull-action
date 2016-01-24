@@ -1,0 +1,373 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-flex-layout/classes/iron-flex-layout.html">
+<link rel="import" href="../paper-spinner/paper-spinner.html">
+<link rel="import" href="../paper-material/paper-material.html">
+
+<!--
+An element providing a solution to no problem in particular.
+
+Example:
+
+    <paper-pull-action></paper-pull-action>
+
+Example:
+
+    <paper-pull-action id="paperPull" on-pull-action="onPullAction" pull-time="300" enabled>
+      <div class="pull-list" pullable>
+        <h2>Pull me!</h2>
+        <div>one</div>
+        <div>two</div>
+        <div>three</div>
+      </div>
+    </paper-pull-action>
+
+@demo demo/index.html
+@hero hero.svg
+-->
+<dom-module id="paper-pull-action">
+  <template>
+    <style>
+
+      #stretch {
+        @apply(--layout-horizontal);
+        @apply(--layout-center-justified);
+        @apply(--layout-center);
+      }
+
+    </style>
+    <div id="stretch">
+      <paper-spinner id="spinner">
+      </paper-spinner>
+    </div>
+    <div id="track" on-track="_onTrack">
+      <content id="content" select="[pullable]"></content>
+    </div>
+  </template>
+
+</dom-module>
+
+<script>
+
+  (function () {
+
+    'use strict';
+
+    /**
+     * Default enabled
+     */
+    var DEFAULT_ENABLED = false;
+
+    /*
+     * Minimum pull time in millis for start tracking
+     */
+    var DEFAULT_PULL_TIME = 200;
+
+    /**
+     * Stretch size
+     */
+    var DEFAULT_STRETCH_HEIGTH = 0;
+
+    /**
+     * Required track distance for firing pull-action event
+     */
+    var ACTION_TRACK_DISTANCE = 50;
+
+    /**
+     * Maximal tracking distance / stretch soze
+     */
+    var MAX_TRACK_DISTANCE = 100;
+
+    /**
+     * Speaking tracking directions
+     */
+    var DIRECTION_NONE = 'none';
+    var DIRECTION_UP = 'up';
+    var DIRECTION_DOWN = 'down';
+
+    /**
+     * Default scroll direction
+     */
+    var DEFAULT_SCROLL_DIRECTION = 'y';
+
+    Polymer({
+
+      'is': 'paper-pull-action',
+
+      'properties': {
+
+        /**
+         * Enabled flag
+         */
+        'enabled': {
+          'type': Boolean,
+          'value': DEFAULT_ENABLED,
+          'notify': false,
+          'readOnly': false
+        },
+
+        /**
+         * Track start time
+         */
+        'startTime': {
+          'type': Number,
+          'value': 0,
+          'notify': false,
+          'readOnly': true
+        },
+
+        /**
+         * Minimum pull time for tracking
+         */
+        'pullTime': {
+          'type': Number,
+          'value': DEFAULT_PULL_TIME,
+          'notify': false,
+          'readOnly': false
+        },
+
+        /**
+         * Listening for certain gestures controls the scrolling direction for touch input.
+         * For example, nodes with a listener for the track event will prevent scrolling by default.
+         * Elements can override scroll direction with this.setScrollDirection(direction, node),
+         * where direction is one of 'x', 'y', 'none', or 'all', and node defaults to this.
+         *
+         * https://www.polymer-project.org/1.0/docs/devguide/events.html#gestures
+         */
+        'scrollDirectionOverride': {
+          'type': String,
+          'value': DEFAULT_SCROLL_DIRECTION,
+          'notify': false,
+          'readOnly': false
+        },
+
+        /**
+         * Current computed stretch height
+         */
+        'stretchHeight': {
+          'type': Number,
+          'value': DEFAULT_STRETCH_HEIGTH,
+          'notify': false,
+          'readOnly': true
+        },
+
+        /**
+         * Current track direction
+         */
+        'direction': {
+          'type': String,
+          'value': DIRECTION_NONE,
+          'notify': false,
+          'readOnly': true
+        },
+
+        /**
+         * Current track distance
+         */
+        'currentDistance': {
+          'type': Number,
+          'value': 0,
+          'notify': false,
+          'readOnly': true
+        },
+
+        /**
+         * Total track distance
+         */
+        'totalDistance': {
+          'type': Number,
+          'value': 0,
+          'notify': false,
+          'readOnly': true
+        }
+
+      },
+
+      // Lifecycle
+      'attached': function attached() {
+
+        var _this = this;
+
+        _this.setScrollDirection(_this.scrollDirectionOverride, _this.$.track);
+
+        // TODO proper ios handling
+        /*
+         var IOS = navigator.userAgent.match(/iP(?:hone|ad;(?: U;)? CPU) OS (\d+)/);
+         if (IOS) {
+         _this.$.track.addEventListener('touchmove', function onTouchMove(event) {
+         event.preventDefault();
+         });
+         }
+         */
+
+      },
+
+      // Helper methods
+
+      '_getDirection': function _getDirection(detail) {
+
+        var direction = DIRECTION_NONE;
+
+        if (detail.ddy < 0) {
+
+          direction = DIRECTION_UP
+
+        } else if (detail.ddy === 0) {
+
+          direction = DIRECTION_NONE;
+
+        } else if (detail.ddy > 0) {
+
+          direction = DIRECTION_DOWN;
+        }
+
+        return direction;
+      },
+
+      '_activateSpinner': function _activateSpinner() {
+
+        var _this = this;
+        _this.$.spinner.active = true;
+      },
+
+      '_deactivateSpinner': function _deactivateSpinner() {
+
+        var _this = this;
+        _this.$.spinner.active = false;
+      },
+
+      '_resizeStretch': function _resizeStretch(height) {
+
+        var _this = this;
+
+        _this._setStretchHeight(height);
+
+        _this.$.stretch.style.height = height + 'px';
+      },
+
+      // Track handler
+
+      '_onTrack': function _onTrack(event, detail) {
+
+        var _this = this;
+
+        if (_this.enabled) {
+
+          if (detail.state === 'start') {
+
+            _this._handleStart(detail);
+
+          } else if (detail.state === 'track') {
+
+            _this._handleTrack(detail);
+
+          } else if (detail.state === 'end') {
+
+            _this._handleEnd(detail);
+
+          } else {
+
+            console.error('Undetermined state', detail.state);
+          }
+
+        }
+
+      },
+
+      '_handleStart': function _handleStart(detail) {
+
+        var _this = this;
+
+        var handleStartTime = Date.now();
+        _this._setStartTime(handleStartTime);
+      },
+
+      '_handleTrack': function _handleStart(detail) {
+
+        var _this = this;
+
+        let currentTime = Date.now();
+        let trackTime = currentTime - _this.startTime;
+        if (trackTime > _this.pullTime) {
+
+          var currentDistance = detail.ddy;
+          _this._setCurrentDistance(currentDistance);
+
+          //var totalDistance = detail.dy;
+          var totalDistance = this.totalDistance + detail.ddy;
+          _this._setTotalDistance(totalDistance);
+
+          var direction = _this._getDirection(detail);
+          _this._setDirection(direction);
+
+          if (_this.direction === DIRECTION_UP) {
+
+            _this._handleTrackUp(detail);
+
+          } else if (_this.direction === DIRECTION_DOWN) {
+
+            _this._handleTrackDown(detail);
+          }
+
+        }
+
+      },
+
+      '_handleTrackUp': function _handleTrackUp(detail) {
+
+        var _this = this;
+
+        if (_this.totalDistance > 0) {
+
+          var stretchHeight = _this.stretchHeight + _this.currentDistance;
+          _this._resizeStretch(stretchHeight);
+
+          if (_this.totalDistance <= ACTION_TRACK_DISTANCE) {
+            _this._deactivateSpinner();
+          }
+        }
+
+      },
+
+      '_handleTrackDown': function _handleTrackUp(detail) {
+
+        var _this = this;
+
+        if (_this.totalDistance <= MAX_TRACK_DISTANCE) {
+
+          var stretchHeight = _this.stretchHeight + _this.currentDistance;
+          _this._resizeStretch(stretchHeight);
+
+          if (_this.totalDistance >= ACTION_TRACK_DISTANCE) {
+            _this._activateSpinner();
+          }
+
+        }
+
+      },
+
+      '_handleEnd': function _handleStart(detail) {
+
+        var _this = this;
+
+        if (_this.totalDistance >= ACTION_TRACK_DISTANCE) {
+          _this.fire('pull-action', null);
+        }
+
+        _this._reset(detail);
+      },
+
+      '_reset': function reset(detail) {
+
+        var _this = this;
+
+        _this._deactivateSpinner();
+        _this._resizeStretch(DEFAULT_STRETCH_HEIGTH);
+        _this._setTotalDistance(0);
+        _this._setStartTime(0);
+
+      }
+
+    })
+
+  })();
+</script>
